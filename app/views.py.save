@@ -87,57 +87,7 @@ class OrderItemViewSet(viewsets.ModelViewSet):
     queryset = OrderItem.objects.all()
     serializer_class = OrderItemSerializer
 
-class LikeProductViewSet(viewsets.ModelViewSet):
-    queryset = LikeProduct.objects.all()
-    serializer_class = LikeProductSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = {
-        'user__number': ['exact'],
-        'product': ['exact'],
-    }
 
-    @action(detail=False, methods=['post'])
-    def toggle_like(self, request):
-        user_number = request.data.get("user_number")
-        product_id = request.data.get("product")
-
-        if not user_number or not product_id:
-            return Response({"error": "user_number va product majburiy!"}, status=400)
-
-        # User tekshirish
-        try:
-            user = User.objects.get(number=user_number)
-        except User.DoesNotExist:
-            return Response({"error": "User topilmadi!"}, status=404)
-
-        # Product tekshirish
-        try:
-            product = Product.objects.get(id=product_id)
-        except Product.DoesNotExist:
-            return Response({"error": "Product topilmadi!"}, status=404)
-
-        # Shu user va shu product bo‘yicha mavjud like ni qidirish
-        like = LikeProduct.objects.filter(user=user, product=product).first()
-
-        if like:
-            # Agar mavjud bo‘lsa → o‘chirib tashlaymiz
-            like.delete()
-            likes_count = LikeProduct.objects.filter(product=product).count()
-            return Response({
-                "status": "unliked",
-                "product_id": product.id,
-                "likes_count": likes_count
-            })
-        else:
-            # Agar yo‘q bo‘lsa → yangi like yaratamiz
-            like = LikeProduct.objects.create(user=user, product=product)
-            serializer = self.get_serializer(like)
-            likes_count = LikeProduct.objects.filter(product=product).count()
-            return Response({
-                "status": "liked",
-                "like": serializer.data,
-                "likes_count": likes_count
-            })
 
 class OrderItemCreateView(CreateAPIView):
     queryset = OrderItem.objects.all()

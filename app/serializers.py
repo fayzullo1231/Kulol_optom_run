@@ -28,6 +28,7 @@ class ProductRateSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    images = ProductImageSerializer(many=True, read_only=True)  # shu qo‘shildi
     average_rating = serializers.FloatField(read_only=True)
 
     class Meta:
@@ -35,8 +36,9 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'desc', 'price', 'discount', 'quantity',
             'category', 'created_at', 'updated_at',
-            'average_rating', 'final_price'
+            'average_rating', 'final_price', 'images'  # images qo‘shildi
         ]
+
 
     def get_user_rating(self, obj):
         user = self.context.get('request').user
@@ -65,14 +67,39 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_final_price(self, obj):
         return sum(item.quantity * item.price for item in obj.items.all())
 
-
 class LikeProductSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    product = ProductSerializer(read_only=True)
+    # foydalanuvchi raqamini yozish uchun
+    user_number = serializers.CharField(write_only=True, required=True)
+    # product id yuborish uchun
+    product_id = serializers.IntegerField(write_only=True, required=True)
+
+    # o‘qishda qulay bo‘lishi uchun ham qaytaramiz
+    user_display = serializers.CharField(source="user.number", read_only=True)
+    product_display = serializers.IntegerField(source="product.id", read_only=True)
 
     class Meta:
         model = LikeProduct
-        fields = ['id', 'user', 'product']
+        fields = ['id', 'user_number', 'product_id', 'user_display', 'product_display']
+
+    def create(self, validated_data):
+        user_number = validated_data.pop("user_number")
+        product_id = validated_data.pop("product_id")
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        try:
+            user = User.objects.get(number=user_number)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"user_number": "Bunday foydalanuvchi topilmadi!"})
+
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            raise serializers.ValidationError({"product_id": "Bunday product topilmadi!"})
+
+        like, created = LikeProduct.objects.get_or_create(user=user, product=product)
+        return like
 
 
 from rest_framework import serializers
