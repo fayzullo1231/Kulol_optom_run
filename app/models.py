@@ -10,10 +10,26 @@ class User(models.Model):
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    parent_name = models.CharField(max_length=100, blank=True, null=True)  # ✅ Faqat Parent uchun
+    sub_name = models.CharField(max_length=100, blank=True, null=True)     # ✅ Faqat Subcategory uchun
+
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        related_name='children',
+        blank=True,
+        null=True
+    )
+
+    image = models.ImageField(upload_to='categories/', blank=True, null=True)  # ✅ faqat parentlarda bo’ladi
 
     def __str__(self):
-        return self.name
+        return self.sub_name or self.parent_name  # Qaysi biri bor bo‘lsa, o‘shani chiqaradi
+
+    @property
+    def is_parent(self):
+        return self.parent is None
+
 
 class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products")

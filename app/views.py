@@ -1,8 +1,13 @@
-from rest_framework import viewsets, generics, filters, status
+from rest_framework import viewsets, generics, filters, status, serializers
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.decorators import action
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import LikeProduct, User, Product
+from .serializers import LikeProductSerializer
+
 
 from .models import User, Category, Product, ProductImage, Order, OrderItem, LikeProduct, ProductRate
 from .serializers import (
@@ -20,6 +25,10 @@ from .serializers import (
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = {
+        'number': ['exact'],   # faqat aniq mos bo‘lsa qaytaradi
+    }
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -79,16 +88,44 @@ class OrderItemViewSet(viewsets.ModelViewSet):
     queryset = OrderItem.objects.all()
     serializer_class = OrderItemSerializer
 
-
 class LikeProductViewSet(viewsets.ModelViewSet):
     queryset = LikeProduct.objects.all()
     serializer_class = LikeProductSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = {
-        'user': ['exact'],           # user id
-        'user__number': ['exact'],   # user phone number
-        'product': ['exact'],        # product id
+        'user__number': ['exact'],
+        'product': ['exact'],
     }
+
+    @action(detail=False, methods=['post'])
+    def toggle_like(self, request):
+        user_number = request.data.get("user_number")
+        product_id = request.data.get("product")
+
+        if not user_number or not product_id:
+            return Response({"error": "user_number va product majburiy!"}, status=400)
+
+        try:
+            user = User.objects.get(number=user_number)
+        except User.DoesNotExist:
+            return Response({"error": "User topilmadi!"}, status=404)
+
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"error": "Product topilmadi!"}, status=404)
+
+        # Like mavjudligini tekshirish
+        like, created = LikeProduct.objects.get_or_create(user=user, product=product)
+        if not created:
+            # Like mavjud bo'lsa o'chirish
+            like.delete()
+            return Response({"status": "unliked"})
+        else:
+            # Like saqlandi
+            serializer = self.get_serializer(like)
+            return Response(serializer.data)
+
 
 class OrderItemCreateView(CreateAPIView):
     queryset = OrderItem.objects.all()

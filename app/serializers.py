@@ -9,10 +9,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=False)
+
     class Meta:
         model = Category
-        fields = ['id', 'name']
-
+        fields = ['id', 'parent_name', 'sub_name', 'parent', 'image']
 
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -67,12 +68,13 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class LikeProductSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    product = ProductSerializer(read_only=True)
+    # user faqat `number` bilan ko‘rsatiladi
+    user_number = serializers.CharField(source="user.number", read_only=True)
+    product_id = serializers.IntegerField(source="product.id", read_only=True)
 
     class Meta:
         model = LikeProduct
-        fields = ['id', 'user', 'product']
+        fields = ['id', 'user_number', 'product_id']
 
 
 from rest_framework import serializers
