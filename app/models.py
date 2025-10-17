@@ -8,12 +8,22 @@ class User(models.Model):
     def __str__(self):
         return f"{self.name} ({self.number})"
 
-
 class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    parent_name = models.CharField(max_length=100, blank=True, null=True)
+    sub_name = models.CharField(max_length=100, blank=True, null=True)
+
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        related_name='children',
+        blank=True,
+        null=True
+    )
+
+    image = models.ImageField(upload_to='categories/', blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return self.sub_name or self.parent_name or "Kategoriya"
 
 class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products")

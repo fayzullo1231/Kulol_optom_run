@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import User, Category, Product, ProductImage, Order, OrderItem, LikeProduct
+from django.utils.html import format_html
 
 
 @admin.register(User)
@@ -7,11 +8,16 @@ class UserAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "number")
     search_fields = ("name", "number")
 
-
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("id", "name")
-    search_fields = ("name",)
+    list_display = ("id", "parent_name", "sub_name", "parent", "image_tag")
+    search_fields = ("parent_name", "sub_name")
+
+    def image_tag(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" width="60" height="60" />', obj.image.url)
+        return "❌"
+    image_tag.short_description = "Rasm"
 
 
 class ProductImageInline(admin.TabularInline):

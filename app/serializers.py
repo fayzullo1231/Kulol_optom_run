@@ -9,9 +9,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=False)
+
     class Meta:
         model = Category
-        fields = ['id', 'name']
+        fields = ['id', 'parent_name', 'sub_name', 'parent', 'image']
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
