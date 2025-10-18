@@ -1,12 +1,14 @@
 from django.conf import settings
 from django.db import models
 
+
 class User(models.Model):
     number = models.CharField(max_length=20, unique=True)  # phone number
     name = models.CharField(max_length=100)
 
     def __str__(self):
         return f"{self.name} ({self.number})"
+
 
 class Category(models.Model):
     parent_name = models.CharField(max_length=100, blank=True, null=True)
@@ -25,20 +27,27 @@ class Category(models.Model):
     def __str__(self):
         return self.sub_name or self.parent_name or "Kategoriya"
 
+
+class CategoryScroll(models.Model):
+    name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to="categories_scroll/")
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products")
     name = models.CharField(max_length=255)
     desc = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    discount = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
     quantity = models.PositiveIntegerField(default=0, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)   # ✅ add this
+    updated_at = models.DateTimeField(auto_now=True)
 
     @property
     def final_price(self):
-        if self.discount > 0:
-            return self.price - (self.price * self.discount / 100)
+        # faqat price qaytaradi, discount yo‘q
         return self.price
 
     @property
@@ -48,9 +57,9 @@ class Product(models.Model):
             return round(sum(r.rate for r in ratings) / ratings.count(), 2)
         return 0
 
-
     def __str__(self):
         return self.name
+
 
 class ProductRate(models.Model):
     RATE_CHOICES = [(i, str(i)) for i in range(1, 6)]  # ⭐ 1–5 rating
@@ -61,7 +70,7 @@ class ProductRate(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("user_number", "product")  #
+        unique_together = ("user_number", "product")
 
     def __str__(self):
         return f"User #{self.user_number} rated {self.product} → {self.rate}"
@@ -84,8 +93,6 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.id} - {self.user.name}"
-
-
 
 
 class OrderItem(models.Model):

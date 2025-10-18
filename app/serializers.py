@@ -1,13 +1,17 @@
 from rest_framework import serializers
-from .models import User, Category, Product, ProductImage, Order, OrderItem, LikeProduct, ProductRate
+from .models import (
+    User, Category, CategoryScroll, Product, ProductImage,
+    Order, OrderItem, LikeProduct, ProductRate
+)
 
-
+# 🔹 USER
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'number', 'name']
 
 
+# 🔹 CATEGORY
 class CategorySerializer(serializers.ModelSerializer):
     image = serializers.ImageField(required=False)
 
@@ -16,12 +20,21 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'parent_name', 'sub_name', 'parent', 'image']
 
 
+# 🔹 CATEGORY SCROLL
+class CategoryScrollSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CategoryScroll
+        fields = ['id', 'name', 'image']
+
+
+# 🔹 PRODUCT IMAGE
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
         fields = ['id', 'image', 'is_main']
 
 
+# 🔹 PRODUCT RATE
 class ProductRateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductRate
@@ -29,27 +42,21 @@ class ProductRateSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
 
+# 🔹 PRODUCT
 class ProductSerializer(serializers.ModelSerializer):
-    images = ProductImageSerializer(many=True, read_only=True)  # shu qo‘shildi
+    images = ProductImageSerializer(many=True, read_only=True)
     average_rating = serializers.FloatField(read_only=True)
 
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'desc', 'price', 'discount', 'quantity',
+            'id', 'name', 'desc', 'price', 'quantity',
             'category', 'created_at', 'updated_at',
-            'average_rating', 'final_price', 'images'  # images qo‘shildi
+            'average_rating', 'final_price', 'images'
         ]
 
 
-    def get_user_rating(self, obj):
-        user = self.context.get('request').user
-        if user and user.is_authenticated:
-            rating = obj.ratings.filter(user=user).first()
-            return rating.rate if rating else None
-        return None
-
-
+# 🔹 ORDER ITEM
 class OrderItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
 
@@ -58,6 +65,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'product', 'quantity', 'subtotal']
 
 
+# 🔹 ORDER
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     final_price = serializers.SerializerMethodField()
@@ -67,15 +75,14 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = ['id', 'number', 'final_price', 'created_at', 'items']
 
     def get_final_price(self, obj):
-        return sum(item.quantity * item.price for item in obj.items.all())
+        return sum(item.subtotal for item in obj.items.all())
 
+
+# 🔹 LIKE PRODUCT
 class LikeProductSerializer(serializers.ModelSerializer):
-    # foydalanuvchi raqamini yozish uchun
     user_number = serializers.CharField(write_only=True, required=True)
-    # product id yuborish uchun
     product_id = serializers.IntegerField(write_only=True, required=True)
 
-    # o‘qishda qulay bo‘lishi uchun ham qaytaramiz
     user_display = serializers.CharField(source="user.number", read_only=True)
     product_display = serializers.IntegerField(source="product.id", read_only=True)
 
@@ -86,9 +93,6 @@ class LikeProductSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user_number = validated_data.pop("user_number")
         product_id = validated_data.pop("product_id")
-
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
 
         try:
             user = User.objects.get(number=user_number)
@@ -104,10 +108,7 @@ class LikeProductSerializer(serializers.ModelSerializer):
         return like
 
 
-from rest_framework import serializers
-from .models import Order, OrderItem
-
-
+# 🔹 ORDER ITEM CREATE
 class OrderItemCreateSerializer(serializers.ModelSerializer):
     order_id = serializers.IntegerField(write_only=True)
     product_id = serializers.IntegerField(write_only=True)
@@ -126,16 +127,13 @@ class OrderItemCreateSerializer(serializers.ModelSerializer):
         item = OrderItem.objects.create(
             order=order,
             product=product,
-            quantity = validated_data['quantity']
+            quantity=validated_data['quantity']
         )
-
-        order.final_price += item.subtotal
-        order.save()
 
         return item
 
 
-
+# 🔹 ORDER CREATE
 class OrderCreateSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(write_only=True)
 

@@ -1,92 +1,106 @@
 from rest_framework import viewsets, generics, filters, status
-from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import LikeProduct, User, Product
-from .serializers import LikeProductSerializer
 
-
-from .models import User, Category, Product, ProductImage, Order, OrderItem, LikeProduct, ProductRate
+from .models import (
+    User, Category, CategoryScroll, Product, ProductImage,
+    Order, OrderItem, LikeProduct, ProductRate
+)
 from .serializers import (
-    UserSerializer,
-    CategorySerializer,
-    ProductSerializer,
-    ProductImageSerializer,
-    OrderSerializer,
-    OrderItemSerializer,
-    LikeProductSerializer,
-    ProductRateSerializer, OrderCreateSerializer, OrderItemCreateSerializer
+    UserSerializer, CategorySerializer, CategoryScrollSerializer,
+    ProductSerializer, ProductImageSerializer,
+    OrderSerializer, OrderItemSerializer,
+    LikeProductSerializer, ProductRateSerializer,
+    OrderCreateSerializer, OrderItemCreateSerializer
 )
 
 
+# 🔹 USER
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = {
-        'number': ['exact'],   # faqat aniq mos bo‘lsa qaytaradi
-}
+        'number': ['exact'],
+    }
 
+
+# 🔹 CATEGORY
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
+# 🔹 CATEGORY SCROLL
+class CategoryScrollViewSet(viewsets.ModelViewSet):
+    queryset = CategoryScroll.objects.all()
+    serializer_class = CategoryScrollSerializer
+
+
+# 🔹 PRODUCT LIST / CREATE
 class ProductListCreateView(generics.ListCreateAPIView):
-    queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    queryset = Product.objects.all().select_related("category").prefetch_related("images")
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
 
-    # Allow filtering by category, price, discount, quantity
-    filterset_fields = ['category', 'price', 'discount', 'quantity']
+    # Filtering fields
+    filterset_fields = ['category', 'price', 'quantity']
 
-    # Allow searching by product name or description
+    # Searching
     search_fields = ['name', 'desc']
 
-    # Allow ordering by price, discount, quantity, created_at
-    ordering_fields = ['price', 'discount', 'quantity', 'created_at']
+    # Ordering
+    ordering_fields = ['price', 'quantity', 'created_at']
 
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        # Filtering by final_price manually (since it's not a DB field)
+        # Filtering by final_price manually
         min_price = self.request.query_params.get('min_price')
         max_price = self.request.query_params.get('max_price')
 
         if min_price:
-            queryset = [p for p in queryset if p.final_price >= float(min_price)]
+            queryset = [p for p in queryset if float(p.final_price) >= float(min_price)]
         if max_price:
-            queryset = [p for p in queryset if p.final_price <= float(max_price)]
+            queryset = [p for p in queryset if float(p.final_price) <= float(max_price)]
 
         return queryset
 
 
+# 🔹 PRODUCT DETAIL
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
 
 
+# 🔹 PRODUCT RATE
 class ProductRateCreateView(generics.CreateAPIView):
     queryset = ProductRate.objects.all()
     serializer_class = ProductRateSerializer
 
+
+# 🔹 PRODUCT IMAGE
 class ProductImageViewSet(viewsets.ModelViewSet):
     queryset = ProductImage.objects.all()
     serializer_class = ProductImageSerializer
 
 
+# 🔹 ORDER
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all().prefetch_related("items__product")
     serializer_class = OrderSerializer
 
 
+# 🔹 ORDER ITEM
 class OrderItemViewSet(viewsets.ModelViewSet):
     queryset = OrderItem.objects.all()
     serializer_class = OrderItemSerializer
 
+
+# 🔹 LIKE PRODUCT
 class LikeProductViewSet(viewsets.ModelViewSet):
     queryset = LikeProduct.objects.all()
     serializer_class = LikeProductSerializer
@@ -116,11 +130,10 @@ class LikeProductViewSet(viewsets.ModelViewSet):
         except Product.DoesNotExist:
             return Response({"error": "Product topilmadi!"}, status=404)
 
-        # Shu user va shu product bo‘yicha mavjud like ni qidirish
+        # Like mavjudmi?
         like = LikeProduct.objects.filter(user=user, product=product).first()
 
         if like:
-            # Agar mavjud bo‘lsa → o‘chirib tashlaymiz
             like.delete()
             likes_count = LikeProduct.objects.filter(product=product).count()
             return Response({
@@ -129,7 +142,6 @@ class LikeProductViewSet(viewsets.ModelViewSet):
                 "likes_count": likes_count
             })
         else:
-            # Agar yo‘q bo‘lsa → yangi like yaratamiz
             like = LikeProduct.objects.create(user=user, product=product)
             serializer = self.get_serializer(like)
             likes_count = LikeProduct.objects.filter(product=product).count()
@@ -139,10 +151,14 @@ class LikeProductViewSet(viewsets.ModelViewSet):
                 "likes_count": likes_count
             })
 
+
+# 🔹 ORDER ITEM CREATE
 class OrderItemCreateView(CreateAPIView):
     queryset = OrderItem.objects.all()
     serializer_class = OrderItemCreateSerializer
 
+
+# 🔹 ORDER CREATE
 class OrderCreateView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = OrderCreateSerializer(data=request.data)
