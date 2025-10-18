@@ -11,10 +11,10 @@ class User(models.Model):
 
 
 class Category(models.Model):
-    sub_name = models.CharField(max_length=255, unique=True)
+    sub_name = models.CharField(max_length=255)
 
     def __str__(self):
-        return self.sub_name
+        return self.sub_name or "None"
 
 class CategoryScroll(models.Model):
     name = models.CharField(max_length=255, unique=True)
