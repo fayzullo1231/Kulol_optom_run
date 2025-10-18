@@ -13,12 +13,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 # 🔹 CATEGORY
 class CategorySerializer(serializers.ModelSerializer):
-    image = serializers.ImageField(required=False)
-
     class Meta:
         model = Category
-        fields = ['id', 'parent_name', 'sub_name', 'parent', 'image']
-
+        fields = ['id', 'sub_name']  # faqat mavjud fieldlar
 
 # 🔹 CATEGORY SCROLL
 class CategoryScrollSerializer(serializers.ModelSerializer):
