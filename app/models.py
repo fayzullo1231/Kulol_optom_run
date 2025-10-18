@@ -7,21 +7,22 @@ class User(models.Model):
     name = models.CharField(max_length=100)
 
     def __str__(self):
-        return f"{self.name} ({self.number})"
+        return f"{self.name or 'NoName'} ({self.number})"
 
 
 class Category(models.Model):
     sub_name = models.CharField(max_length=255)
 
     def __str__(self):
-        return self.sub_name or "None"
+        return self.sub_name or "Unnamed Category"
+
 
 class CategoryScroll(models.Model):
     name = models.CharField(max_length=255, unique=True)
     image = models.ImageField(upload_to="category_scrolls/", blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return self.name or "Unnamed Scroll"
 
 
 class Product(models.Model):
@@ -48,7 +49,8 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return self.name or "Unnamed Product"
+
 
 class ProductRate(models.Model):
     RATE_CHOICES = [(i, str(i)) for i in range(1, 6)]  # ⭐ 1–5 rating
@@ -62,7 +64,7 @@ class ProductRate(models.Model):
         unique_together = ("user_number", "product")
 
     def __str__(self):
-        return f"User #{self.user_number} rated {self.product} → {self.rate}"
+        return f"User #{self.user_number} rated {self.product.name if self.product else 'Unknown'} → {self.rate}"
 
 
 class ProductImage(models.Model):
@@ -71,7 +73,7 @@ class ProductImage(models.Model):
     is_main = models.BooleanField(default=False)  # cover image
 
     def __str__(self):
-        return f"Image for {self.product.name}"
+        return f"Image for {self.product.name if self.product else 'Unknown'}"
 
 
 class Order(models.Model):
@@ -81,7 +83,7 @@ class Order(models.Model):
     final_price = models.IntegerField(default=0)
 
     def __str__(self):
-        return f"Order #{self.id} - {self.user.name}"
+        return f"Order #{self.id} - {self.user.name if self.user else 'NoUser'}"
 
 
 class OrderItem(models.Model):
@@ -91,10 +93,10 @@ class OrderItem(models.Model):
 
     @property
     def subtotal(self):
-        return self.product.final_price * self.quantity
+        return self.product.price * self.quantity  # ❌ final_price yo‘q edi, price ishlatyapmiz
 
     def __str__(self):
-        return f"{self.quantity} x {self.product.name}"
+        return f"{self.quantity} x {self.product.name if self.product else 'Unknown'}"
 
 
 class LikeProduct(models.Model):
@@ -105,4 +107,4 @@ class LikeProduct(models.Model):
         unique_together = ('user', 'product')
 
     def __str__(self):
-        return f"{self.user.name} likes {self.product.name}"
+        return f"{self.user.name if self.user else 'Unknown'} likes {self.product.name if self.product else 'Unknown'}"
