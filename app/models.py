@@ -11,55 +11,44 @@ class User(models.Model):
 
 
 class Category(models.Model):
-    parent_name = models.CharField(max_length=100, blank=True, null=True)
-    sub_name = models.CharField(max_length=100, blank=True, null=True)
-
-    parent = models.ForeignKey(
-        'self',
-        on_delete=models.CASCADE,
-        related_name='children',
-        blank=True,
-        null=True
-    )
-
-    image = models.ImageField(upload_to='categories/', blank=True, null=True)
+    sub_name = models.CharField(max_length=255, unique=True)
 
     def __str__(self):
-        return self.sub_name or self.parent_name or "Kategoriya"
-
+        return self.sub_name
 
 class CategoryScroll(models.Model):
-    name = models.CharField(max_length=100)
-    image = models.ImageField(upload_to="categories_scroll/")
+    name = models.CharField(max_length=255, unique=True)
+    image = models.ImageField(upload_to="category_scrolls/", blank=True, null=True)
 
     def __str__(self):
         return self.name
 
 
 class Product(models.Model):
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products")
     name = models.CharField(max_length=255)
     desc = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    quantity = models.PositiveIntegerField(default=0, null=True, blank=True)
+    quantity = models.PositiveIntegerField(default=0)
+
+    # asosiy filterlash uchun Category (sub_name)
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+        related_name="products"
+    )
+
+    # scrollda chiqishi uchun
+    category_scroll = models.ForeignKey(
+        CategoryScroll,
+        on_delete=models.CASCADE,
+        related_name="products",
+        null=True, blank=True
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    @property
-    def final_price(self):
-        # faqat price qaytaradi, discount yo‘q
-        return self.price
-
-    @property
-    def average_rating(self):
-        ratings = self.ratings.all()
-        if ratings.exists():
-            return round(sum(r.rate for r in ratings) / ratings.count(), 2)
-        return 0
 
     def __str__(self):
         return self.name
-
 
 class ProductRate(models.Model):
     RATE_CHOICES = [(i, str(i)) for i in range(1, 6)]  # ⭐ 1–5 rating

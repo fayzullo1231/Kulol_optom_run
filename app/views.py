@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import F, ExpressionWrapper, DecimalField
 
 from .models import (
     User, Category, CategoryScroll, Product, ProductImage,
@@ -58,14 +59,21 @@ class ProductListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        # Filtering by final_price manually
+        # annotate final_price (agar kelajakda chegirma yoki boshqa formula bo‘lsa)
+        queryset = queryset.annotate(
+            final_price_expr=ExpressionWrapper(
+                F("price"), output_field=DecimalField()
+            )
+        )
+
+        # Query params
         min_price = self.request.query_params.get('min_price')
         max_price = self.request.query_params.get('max_price')
 
         if min_price:
-            queryset = [p for p in queryset if float(p.final_price) >= float(min_price)]
+            queryset = queryset.filter(final_price_expr__gte=min_price)
         if max_price:
-            queryset = [p for p in queryset if float(p.final_price) <= float(max_price)]
+            queryset = queryset.filter(final_price_expr__lte=max_price)
 
         return queryset
 
