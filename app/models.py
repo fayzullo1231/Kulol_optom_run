@@ -11,7 +11,7 @@ class User(models.Model):
 
 
 class Category(models.Model):
-    sub_name = models.CharField(max_length=255)
+    sub_name = models.CharField(max_length=255, null=False, blank=False, default="No name")
 
     def __str__(self):
         return self.sub_name or "Unnamed Category"
