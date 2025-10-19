@@ -71,8 +71,8 @@ class ProductRateAdmin(admin.ModelAdmin):
 # 🔹 ORDER
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "number", "final_price", "created_at")
-    search_fields = ("user__name", "number")
+    list_display = ("id", "user", "tracking_code", "final_price", "created_at")
+    search_fields = ("user__name", "user__number", "tracking_code")
     list_filter = ("created_at",)
     ordering = ("-created_at",)
 
@@ -81,7 +81,7 @@ class OrderAdmin(admin.ModelAdmin):
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ("id", "order", "product", "quantity", "subtotal")
-    search_fields = ("order__id", "product__name")
+    search_fields = ("order__tracking_code", "product__name")
     ordering = ("id",)
 
 
