@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 
 class User(models.Model):
@@ -14,7 +15,7 @@ class Category(models.Model):
         max_length=255,
         null=False,
         blank=False,
-        default="No name"  # ❗ null=False bo‘lgani uchun default qo‘ydik
+        default="No name"  # null=False bo‘lgani uchun default qo‘ydik
     )
 
     def __str__(self):
@@ -22,7 +23,7 @@ class Category(models.Model):
 
 
 class CategoryScroll(models.Model):
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)  # unique=False qildim
     image = models.ImageField(upload_to="category_scrolls/", blank=True, null=True)
 
     def __str__(self):
@@ -77,13 +78,20 @@ class ProductImage(models.Model):
     image = models.ImageField(upload_to="products/")
     is_main = models.BooleanField(default=False)  # cover image
 
+    def clean(self):
+        """Har bir product uchun faqat bitta is_main=True bo‘lsin"""
+        if self.is_main:
+            qs = ProductImage.objects.filter(product=self.product, is_main=True).exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError("Bitta product uchun faqat bitta asosiy rasm bo‘lishi mumkin.")
+
     def __str__(self):
         return f"Image for {self.product.name if self.product else 'Unknown'}"
 
 
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
-    number = models.CharField(max_length=20)  # buyurtma tracking code
+    tracking_code = models.CharField(max_length=20)  # buyurtma tracking code
     created_at = models.DateTimeField(auto_now_add=True)
     final_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
