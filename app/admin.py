@@ -71,10 +71,18 @@ class ProductRateAdmin(admin.ModelAdmin):
 # 🔹 ORDER
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "tracking_code", "final_price", "created_at")
+    list_display = ("id", "user_name", "user_number", "tracking_code", "final_price", "created_at")
     search_fields = ("user__name", "user__number", "tracking_code")
     list_filter = ("created_at",)
     ordering = ("-created_at",)
+
+    def user_name(self, obj):
+        return obj.user.name if obj.user else "❌"
+    user_name.short_description = "Foydalanuvchi"
+
+    def user_number(self, obj):
+        return obj.user.number if obj.user else "❌"
+    user_number.short_description = "Telefon raqami"
 
 
 # 🔹 ORDER ITEM
