@@ -1,9 +1,8 @@
-from django.conf import settings
 from django.db import models
 
 
 class User(models.Model):
-    number = models.CharField(max_length=20, unique=True)  # phone number
+    number = models.CharField(max_length=20, unique=True)  # Telefon raqami
     name = models.CharField(max_length=100)
 
     def __str__(self):
@@ -11,7 +10,12 @@ class User(models.Model):
 
 
 class Category(models.Model):
-    sub_name = models.CharField(max_length=255, null=False, blank=False, default="No name")
+    sub_name = models.CharField(
+        max_length=255,
+        null=False,
+        blank=False,
+        default="No name"  # ❗ null=False bo‘lgani uchun default qo‘ydik
+    )
 
     def __str__(self):
         return self.sub_name or "Unnamed Category"
@@ -38,12 +42,13 @@ class Product(models.Model):
         related_name="products"
     )
 
-    # scrollda chiqishi uchun
+    # scroll’da chiqishi uchun
     category_scroll = models.ForeignKey(
         CategoryScroll,
         on_delete=models.CASCADE,
         related_name="products",
-        null=True, blank=True
+        null=True,
+        blank=True
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -55,7 +60,7 @@ class Product(models.Model):
 class ProductRate(models.Model):
     RATE_CHOICES = [(i, str(i)) for i in range(1, 6)]  # ⭐ 1–5 rating
 
-    user_number = models.IntegerField()  # just a number, not FK
+    user_number = models.CharField(max_length=20)  # telefon raqam sifatida saqlaymiz
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="ratings")
     rate = models.IntegerField(choices=RATE_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -64,7 +69,7 @@ class ProductRate(models.Model):
         unique_together = ("user_number", "product")
 
     def __str__(self):
-        return f"User #{self.user_number} rated {self.product.name if self.product else 'Unknown'} → {self.rate}"
+        return f"User {self.user_number} rated {self.product.name if self.product else 'Unknown'} → {self.rate}"
 
 
 class ProductImage(models.Model):
@@ -78,9 +83,9 @@ class ProductImage(models.Model):
 
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
-    number = models.CharField(max_length=20)  # order number / tracking code
+    number = models.CharField(max_length=20)  # buyurtma tracking code
     created_at = models.DateTimeField(auto_now_add=True)
-    final_price = models.IntegerField(default=0)
+    final_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def __str__(self):
         return f"Order #{self.id} - {self.user.name if self.user else 'NoUser'}"
@@ -93,7 +98,7 @@ class OrderItem(models.Model):
 
     @property
     def subtotal(self):
-        return self.product.price * self.quantity  # ❌ final_price yo‘q edi, price ishlatyapmiz
+        return self.product.price * self.quantity
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name if self.product else 'Unknown'}"
