@@ -9,7 +9,7 @@ from .views import (
     OrderViewSet,
     OrderItemViewSet,
     LikeProductViewSet,
-    ProductRateCreateView, OrderCreateView, OrderItemCreateView
+    ProductRateCreateView, OrderCreateView, OrderItemCreateView, CategoryScrollViewSet
 )
 
 router = DefaultRouter()
@@ -19,6 +19,8 @@ router.register("images", ProductImageViewSet)
 router.register("orders", OrderViewSet)
 router.register("order-items", OrderItemViewSet)
 router.register("likes", LikeProductViewSet)
+
+router.register("category-scrolls", CategoryScrollViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),
