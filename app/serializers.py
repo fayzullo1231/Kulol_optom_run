@@ -15,7 +15,8 @@ class UserSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'sub_name']  # faqat mavjud fieldlar
+        fields = ['id', 'sub_name']  # agar image bo‘lsa qo‘shish mumkin
+
 
 # 🔹 CATEGORY SCROLL
 class CategoryScrollSerializer(serializers.ModelSerializer):
@@ -42,15 +43,23 @@ class ProductRateSerializer(serializers.ModelSerializer):
 # 🔹 PRODUCT
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
-    average_rating = serializers.FloatField(read_only=True)
+    average_rating = serializers.SerializerMethodField()
+    final_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'desc', 'price', 'quantity',
-            'category', 'created_at', 'updated_at',
+            'category', 'category_scroll',
+            'created_at', 'updated_at',
             'average_rating', 'final_price', 'images'
         ]
+
+    def get_average_rating(self, obj):
+        ratings = obj.ratings.all()
+        if ratings.exists():
+            return round(sum(r.rate for r in ratings) / ratings.count(), 2)
+        return None
 
 
 # 🔹 ORDER ITEM
@@ -66,10 +75,11 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     final_price = serializers.SerializerMethodField()
+    user_number = serializers.CharField(source="user.number", read_only=True)
 
     class Meta:
         model = Order
-        fields = ['id', 'number', 'final_price', 'created_at', 'items']
+        fields = ['id', 'tracking_code', 'user_number', 'final_price', 'created_at', 'items']
 
     def get_final_price(self, obj):
         return sum(item.subtotal for item in obj.items.all())
@@ -126,7 +136,6 @@ class OrderItemCreateSerializer(serializers.ModelSerializer):
             product=product,
             quantity=validated_data['quantity']
         )
-
         return item
 
 
@@ -136,15 +145,14 @@ class OrderCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'user_id', 'number', 'created_at']
-        read_only_fields = ['id', 'user_id']
+        fields = ['id', 'user_id', 'tracking_code', 'created_at']
+        read_only_fields = ['id']
 
     def create(self, validated_data):
         user_id = validated_data.pop('user_id')
         user = User.objects.get(id=user_id)
-
         order = Order.objects.create(
             user=user,
-            number=user.number,
+            tracking_code=f"TRK{user.id}{Order.objects.count() + 1:04d}"  # tracking code avtomatik
         )
         return order

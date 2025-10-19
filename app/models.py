@@ -35,6 +35,7 @@ class Product(models.Model):
     desc = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
 
     # asosiy filterlash uchun Category (sub_name)
     category = models.ForeignKey(
